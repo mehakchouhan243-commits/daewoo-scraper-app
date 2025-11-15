@@ -167,7 +167,7 @@ with col1:
         st.session_state.setdefault("cache_buster", 0)
         st.session_state["cache_buster"] += 1
         # We'll append a query param to avoid returning the cached response inside this run
-        route_live_url = route_url + ("?t=" + str(time.time()))
+        route_live_url = route_url
         try:
             tables, meta = scrape_route(route_live_url)
         except Exception as e:
