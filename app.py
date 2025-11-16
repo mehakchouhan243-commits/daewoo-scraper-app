@@ -11,7 +11,6 @@ from datetime import datetime
 import time
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
-import numpy as np
 
 # ----------------------
 # Config & Constants
@@ -35,7 +34,7 @@ st.title("🚌 Daewoo Scraper & Bus Delay Predictor")
 
 st.markdown("""
 This app scrapes tables from `daewooinfo.pk` for different routes and predicts bus delay times 
-based on user input features such as route, day, departure hour, traffic, and weather.
+based on user input features such as route, day, departure hour & minute, traffic, and weather.
 """)
 
 # ----------------------
@@ -53,6 +52,7 @@ with st.sidebar:
     pred_route = st.selectbox("Route for prediction", list(ROUTES.keys()), index=0)
     day_of_week = st.selectbox("Day of Week", ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"])
     departure_hour = st.number_input("Departure Hour (0-23)", min_value=0, max_value=23, value=9)
+    departure_minute = st.number_input("Departure Minute (0-59)", min_value=0, max_value=59, value=0)
     traffic = st.selectbox("Traffic Level", ["Low","Medium","High"])
     weather = st.selectbox("Weather", ["Clear","Rainy","Foggy","Other"])
     predict_button = st.button("Predict Delay")
@@ -197,32 +197,34 @@ def load_model():
     le_day = LabelEncoder().fit(df["Day"])
     le_traffic = LabelEncoder().fit(df["Traffic"])
     le_weather = LabelEncoder().fit(df["Weather"])
+    # X with decimal hour (hour + minutes/60)
     X = pd.DataFrame({
         "Route": le_route.transform(df["Route"]),
         "Day": le_day.transform(df["Day"]),
-        "DepartureHour": df["DepartureHour"],
+        "DepartureTime": df["DepartureHour"],  # decimal hour will be used in prediction
         "Traffic": le_traffic.transform(df["Traffic"]),
         "Weather": le_weather.transform(df["Weather"])
     })
     y = df["Delay"]
     model = RandomForestRegressor(n_estimators=50, random_state=42)
-    model.fit(X,y)
+    model.fit(X, y)
     return model, le_route, le_day, le_traffic, le_weather
 
 model, le_route, le_day, le_traffic, le_weather = load_model()
 
 def safe_transform(le, val):
-    """Transform a label safely. If unseen, return -1."""
+    """Transform a label safely. If unseen, return -1"""
     if val in le.classes_:
         return le.transform([val])[0]
     else:
         return -1
 
 if predict_button:
+    departure_time = departure_hour + departure_minute / 60.0  # decimal hour
     X_test = pd.DataFrame({
         "Route": [safe_transform(le_route, pred_route)],
         "Day": [safe_transform(le_day, day_of_week)],
-        "DepartureHour": [departure_hour],
+        "DepartureTime": [departure_time],
         "Traffic": [safe_transform(le_traffic, traffic)],
         "Weather": [safe_transform(le_weather, weather)]
     })
