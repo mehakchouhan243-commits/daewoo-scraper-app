@@ -9,9 +9,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime
 import time
-import joblib
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
+import numpy as np
 
 # ----------------------
 # Config & Constants
@@ -34,7 +34,7 @@ st.set_page_config(page_title="Daewoo Scraper + Delay Predictor", page_icon="�
 st.title("🚌 Daewoo Scraper & Bus Delay Predictor")
 
 st.markdown("""
-This app scrapes tables from `daewooinfo.pk` for different routes and allows you to predict bus delay times 
+This app scrapes tables from `daewooinfo.pk` for different routes and predicts bus delay times 
 based on user input features such as route, day, departure hour, traffic, and weather.
 """)
 
@@ -89,7 +89,6 @@ def fetch_html(url, use_cache=True):
 # Table Parsing
 # ----------------------
 def parse_tables(html):
-    """Return tables as list of (name, df) tuples"""
     tables = []
     try:
         for i, t in enumerate(pd.read_html(html)):
@@ -183,10 +182,9 @@ with col2:
 st.write("---")
 st.subheader("Predict Bus Delay (minutes)")
 
-# For demo, create or load a simple RandomForest model trained on CSV
 @st.cache_resource
 def load_model():
-    # For demo, we create a fake dataset
+    # Demo dataset
     df = pd.DataFrame({
         "Route": ["Lahore ↔ Islamabad","Karachi ↔ Lahore","Multan ↔ Lahore"]*10,
         "Day": ["Monday","Tuesday","Wednesday"]*10,
@@ -195,7 +193,6 @@ def load_model():
         "Weather": ["Clear","Rainy","Foggy"]*10,
         "Delay": [5,10,15]*10
     })
-    # Encode categorical features
     le_route = LabelEncoder().fit(df["Route"])
     le_day = LabelEncoder().fit(df["Day"])
     le_traffic = LabelEncoder().fit(df["Traffic"])
@@ -214,13 +211,20 @@ def load_model():
 
 model, le_route, le_day, le_traffic, le_weather = load_model()
 
+def safe_transform(le, val):
+    """Transform a label safely. If unseen, return -1."""
+    if val in le.classes_:
+        return le.transform([val])[0]
+    else:
+        return -1
+
 if predict_button:
     X_test = pd.DataFrame({
-        "Route": [le_route.transform([pred_route])[0]],
-        "Day": [le_day.transform([day_of_week])[0]],
+        "Route": [safe_transform(le_route, pred_route)],
+        "Day": [safe_transform(le_day, day_of_week)],
         "DepartureHour": [departure_hour],
-        "Traffic": [le_traffic.transform([traffic])[0]],
-        "Weather": [le_weather.transform([weather])[0]]
+        "Traffic": [safe_transform(le_traffic, traffic)],
+        "Weather": [safe_transform(le_weather, weather)]
     })
     pred_delay = model.predict(X_test)[0]
     st.success(f"Predicted Bus Delay: {round(pred_delay,1)} minutes")
