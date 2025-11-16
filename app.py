@@ -23,13 +23,12 @@ BASE_URL = "https://daewooinfo.pk"
 
 # A small list of route slugs. You can extend this list or replace with any valid route path on the site.
 ROUTES = {
-    # Use the homepage because the dedicated route page seems missing
     "Lahore ↔ Islamabad": "/",
-    "Karachi ↔ Lahore": "/daewoo‑karachi-lahore/",
-    "Karachi ↔ Islamabad": "/daewoo-karachi-islamabad/",
-    "Multan ↔ Rawalpindi": "/daewoo-multan-rawalpindi/",
-    "Multan ↔ Lahore": "/daewoo-multan-lahore/",
-    "Peshawar ↔ Islamabad": "/daewoo-peshawar-islamabad/",
+    "Karachi ↔ Lahore": "/",
+    "Karachi ↔ Islamabad": "/",
+    "Multan ↔ Rawalpindi": "/",
+    "Multan ↔ Lahore": "/",
+    "Peshawar ↔ Islamabad": "/",
 }
 
 HEADERS = {
